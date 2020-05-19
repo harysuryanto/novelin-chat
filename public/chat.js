@@ -1,5 +1,6 @@
 // Make connection
-var socket = io.connect('http://localhost:4000');
+const PORT = 3000;
+var socket = io.connect('novelin-chat.herokuapp.com') || io.connect(`http://localhost:${PORT}`);
 
 // Query DOM
 var message = document.getElementById('message'),
@@ -7,26 +8,56 @@ var message = document.getElementById('message'),
     btn = document.getElementById('send'),
     output = document.getElementById('output'),
     feedback = document.getElementById('feedback');
+    chatWindow = document.getElementById('chat-window');
+    form = document.querySelector('form');
+    pingSound = new Audio('https://srv-file16.gofile.io/download/EY65k3/ping_sound.mp3');
 
 // Emit events
+function scrollChatToBottom() {
+  chatWindow.scrollTop = chatWindow.scrollHeight
+}
 
-btn.addEventListener('click', function() {
-    if (handle.value == '') {
-        alert('Please enter your name')
-    } else if (message.value == '') {
-        alert('Please enter your message')
-    } else {
-        socket.emit('chat_dari_client', {
-            message: message.value,
-            handle: handle.value
-        });
-    
-        // Disable the input so user can't change name
-        handle.disabled = true;
-    
-        // Clear di input message after sending message
-        message.value = '';
-    }
+function handleSend(e) {
+  if (handle.value == '') {
+      alert('Please enter your name')
+  } else if (message.value == '') {
+      alert('Please enter your message')
+  } else {
+      socket.emit('chat_dari_client', {
+          message: message.value,
+          handle: handle.value
+      });
+
+      // Disable the input so user can't change name
+      handle.disabled = true;
+
+      // Clear di input message after sending message
+      message.value = '';
+  }
+}
+
+// btn.addEventListener('click', function() {
+  // if (handle.value == '') {
+  //   alert('Please enter your name')
+  // } else if (message.value == '') {
+  //     alert('Please enter your message')
+  // } else {
+  //     socket.emit('chat_dari_client', {
+  //         message: message.value,
+  //         handle: handle.value
+  //     });
+
+  //     // Disable the input so user can't change name
+  //     handle.disabled = true;
+
+  //     // Clear di input message after sending message
+  //     message.value = '';
+  // }
+// });
+
+form.addEventListener('submit', function(e) {
+  e.preventDefault();
+  handleSend();
 });
 
 message.addEventListener('keypress', function() {
@@ -36,14 +67,17 @@ message.addEventListener('keypress', function() {
 // Listen for events
 socket.on('chat_dari_server', function(data) {
     feedback.innerHTML = '';
-    hour = data.hour<10 ? '0' + data.hour : data.hour;
-    minute = data.minute<10 ? '0' + data.minute : data.minute;
-    time = '[' + hour + ':' + minute + ']';
     
-    output.innerHTML += '<p>' + time + ' <strong>' + data.handle + ': </strong>' + data.message + '</p>';
+    time = '[' + data.hour + ':' + data.minute + ']';
+
+    color = data.handle == handle.value ? 'style="color: orange;"' : '';
+    output.innerHTML += '<p>' + time + ' <strong '  + color + '>' + data.handle + ': </strong>' + data.message + '</p>';
+    scrollChatToBottom();
+    data.handle !== handle.value && pingSound.play();
 });
 
 socket.on('typing', function(data) {
     if (data == '') data = 'someone';
     feedback.innerHTML = '<p><em>' + data + ' is typing a message...</em></p>';
+    scrollChatToBottom();
 })
